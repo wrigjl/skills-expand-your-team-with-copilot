@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     community: { label: "Community", color: "#fff3e0", textColor: "#e65100" },
     technology: { label: "Technology", color: "#e8eaf6", textColor: "#3949ab" },
   };
+  const supportedThemes = ["light", "dark"];
+  const themeStorageKey = "preferredTheme";
 
   // State for activities and filters
   let allActivities = {};
@@ -54,10 +56,9 @@ document.addEventListener("DOMContentLoaded", () => {
     afternoon: { start: "15:00", end: "18:00" }, // After school hours
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
-  const themeStorageKey = "preferredTheme";
 
   function applyTheme(theme) {
-    currentTheme = theme === "dark" ? "dark" : "light";
+    currentTheme = supportedThemes.includes(theme) ? theme : "light";
     document.body.dataset.theme = currentTheme;
     themeToggle.setAttribute("aria-pressed", String(currentTheme === "dark"));
     themeToggle.setAttribute(
