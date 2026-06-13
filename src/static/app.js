@@ -38,7 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // State for activities and filters
   let allActivities = {};
   let currentFilter = "all";
-  let currentDifficulty = "";
+  const ALL_DIFFICULTY_LEVELS = "";
+  let currentDifficulty = ALL_DIFFICULTY_LEVELS;
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
@@ -311,8 +312,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return details.schedule;
   }
 
-  function getDifficultyLabel(difficulty) {
+  function getNormalizedDifficulty(difficulty) {
     const normalizedDifficulty = (difficulty || "").trim().toLowerCase();
+    return difficultyLabels[normalizedDifficulty] ? normalizedDifficulty : "";
+  }
+
+  function getDifficultyLabel(difficulty) {
+    const normalizedDifficulty = getNormalizedDifficulty(difficulty);
     return difficultyLabels[normalizedDifficulty] || "";
   }
 
@@ -437,13 +443,13 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const activityDifficulty = getDifficultyLabel(details.difficulty);
-      if (currentDifficulty === "" && activityDifficulty) {
+      const activityDifficulty = getNormalizedDifficulty(details.difficulty);
+      if (currentDifficulty === ALL_DIFFICULTY_LEVELS && activityDifficulty) {
         return;
       }
       if (
-        currentDifficulty !== "" &&
-        activityDifficulty.toLowerCase() !== currentDifficulty
+        currentDifficulty !== ALL_DIFFICULTY_LEVELS &&
+        activityDifficulty !== currentDifficulty
       ) {
         return;
       }
