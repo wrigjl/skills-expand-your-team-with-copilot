@@ -705,8 +705,8 @@ footer {
 }
 
 #theme-toggle {
-  min-width: 120px;
   justify-content: center;
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
