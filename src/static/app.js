@@ -45,6 +45,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Authentication state
   let currentUser = null;
+  const difficultyLabels = {
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+  };
 
   // Time range mappings for the dropdown
   const timeRanges = {
@@ -308,16 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getDifficultyLabel(difficulty) {
     const normalizedDifficulty = (difficulty || "").trim().toLowerCase();
-    if (normalizedDifficulty === "beginner") {
-      return "Beginner";
-    }
-    if (normalizedDifficulty === "intermediate") {
-      return "Intermediate";
-    }
-    if (normalizedDifficulty === "advanced") {
-      return "Advanced";
-    }
-    return "";
+    return difficultyLabels[normalizedDifficulty] || "";
   }
 
   // Function to determine activity type (this would ideally come from backend)
@@ -442,11 +438,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const activityDifficulty = getDifficultyLabel(details.difficulty);
-      if (currentDifficulty === "") {
-        if (activityDifficulty) {
-          return;
-        }
-      } else if (activityDifficulty.toLowerCase() !== currentDifficulty) {
+      if (currentDifficulty === "" && activityDifficulty) {
+        return;
+      }
+      if (
+        currentDifficulty !== "" &&
+        activityDifficulty.toLowerCase() !== currentDifficulty
+      ) {
         return;
       }
 
