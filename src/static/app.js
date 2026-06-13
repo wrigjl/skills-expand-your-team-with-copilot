@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let allActivities = {};
   let currentFilter = "all";
   const UNSPECIFIED_DIFFICULTY = "";
-  let currentDifficulty = UNSPECIFIED_DIFFICULTY;
+  let selectedDifficultyFilter = UNSPECIFIED_DIFFICULTY;
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
@@ -444,11 +444,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const activityDifficulty = getNormalizedDifficulty(details.difficulty);
-      const showUnspecifiedOnly = currentDifficulty === UNSPECIFIED_DIFFICULTY;
+      const showUnspecifiedOnly =
+        selectedDifficultyFilter === UNSPECIFIED_DIFFICULTY;
       if (showUnspecifiedOnly && activityDifficulty) {
         return;
       }
-      if (!showUnspecifiedOnly && activityDifficulty !== currentDifficulty) {
+      if (
+        !showUnspecifiedOnly &&
+        activityDifficulty !== selectedDifficultyFilter
+      ) {
         return;
       }
 
@@ -653,7 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
       difficultyFilters.forEach((btn) => btn.classList.remove("active"));
       button.classList.add("active");
 
-      currentDifficulty = button.dataset.difficulty;
+      selectedDifficultyFilter = button.dataset.difficulty;
       displayFilteredActivities();
     });
   });
