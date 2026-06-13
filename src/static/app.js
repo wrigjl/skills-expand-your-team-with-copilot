@@ -25,6 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const closeLoginModal = document.querySelector(".close-login-modal");
   const loginMessage = document.getElementById("login-message");
+  const themeToggle = document.getElementById("theme-toggle");
+  const themeToggleIcon = document.getElementById("theme-toggle-icon");
+  const themeToggleLabel = document.getElementById("theme-toggle-label");
 
   // Activity categories with corresponding colors
   const activityTypes = {
@@ -34,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
     community: { label: "Community", color: "#fff3e0", textColor: "#e65100" },
     technology: { label: "Technology", color: "#e8eaf6", textColor: "#3949ab" },
   };
+  const supportedThemes = ["light", "dark"];
+  const themeStorageKey = "preferredTheme";
 
   // State for activities and filters
   let allActivities = {};
@@ -51,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     intermediate: "Intermediate",
     advanced: "Advanced",
   };
+  let currentTheme = "light";
 
   // Time range mappings for the dropdown
   const timeRanges = {
@@ -58,6 +64,48 @@ document.addEventListener("DOMContentLoaded", () => {
     afternoon: { start: "15:00", end: "18:00" }, // After school hours
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
+
+  function normalizeTheme(theme) {
+    return supportedThemes.includes(theme) ? theme : "light";
+  }
+
+  function applyTheme(theme) {
+    currentTheme = normalizeTheme(theme);
+    document.body.dataset.theme = currentTheme;
+    if (themeToggle) {
+      themeToggle.setAttribute(
+        "aria-pressed",
+        String(currentTheme === "dark")
+      );
+      themeToggle.setAttribute(
+        "aria-label",
+        currentTheme === "dark"
+          ? "Switch to light mode"
+          : "Switch to dark mode"
+      );
+    }
+    if (themeToggleIcon) {
+      themeToggleIcon.textContent = currentTheme === "dark" ? "☀️" : "🌙";
+    }
+    if (themeToggleLabel) {
+      themeToggleLabel.textContent =
+        currentTheme === "dark" ? "Light mode" : "Dark mode";
+    }
+  }
+
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem(themeStorageKey);
+    const systemPrefersDark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(savedTheme || (systemPrefersDark ? "dark" : "light"));
+  }
+
+  function toggleTheme() {
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme);
+    localStorage.setItem(themeStorageKey, nextTheme);
+  }
 
   // Initialize filters from active elements
   function initializeFilters() {
@@ -246,6 +294,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loginButton.addEventListener("click", openLoginModal);
   logoutButton.addEventListener("click", logout);
   closeLoginModal.addEventListener("click", closeLoginModalHandler);
+  if (themeToggle) {
+    themeToggle.addEventListener("click", toggleTheme);
+  }
 
   // Close login modal when clicking outside
   window.addEventListener("click", (event) => {
@@ -320,6 +371,32 @@ document.addEventListener("DOMContentLoaded", () => {
   function getDifficultyLabel(difficulty) {
     const normalizedDifficulty = getNormalizedDifficulty(difficulty);
     return difficultyLabels[normalizedDifficulty] || "";
+  }
+
+  // Build consistent share payload for an activity
+  function getShareData(activityName, details) {
+    const shareUrl = new URL(window.location.href);
+    shareUrl.searchParams.set("activity", activityName);
+
+    return {
+      title: `${activityName} at Mergington High School`,
+      text: `Check out ${activityName} at Mergington High School. Schedule: ${formatSchedule(
+        details
+      )}`,
+      url: shareUrl.toString(),
+    };
+  }
+
+  // Initialize search state from shared links
+  function initializeSharedActivitySearch() {
+    const sharedActivity = new URLSearchParams(window.location.search).get(
+      "activity"
+    );
+    if (!sharedActivity) {
+      return;
+    }
+    searchQuery = sharedActivity;
+    searchInput.value = sharedActivity;
   }
 
   // Function to determine activity type (this would ideally come from backend)
@@ -530,6 +607,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
     const difficultyLabel = getDifficultyLabel(details.difficulty);
+    const shareData = getShareData(name, details);
+    const encodedShareUrl = encodeURIComponent(shareData.url);
+    const encodedShareText = encodeURIComponent(`${shareData.text} ${shareData.url}`);
+    const encodedEmailSubject = encodeURIComponent(
+      `Activity recommendation: ${name}`
+    );
+    const encodedEmailBody = encodeURIComponent(
+      `${shareData.text}\n\n${shareData.url}`
+    );
 
     // Create activity tag
     const tagHtml = `
@@ -606,6 +692,42 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-actions">
+        <span class="share-label">Share:</span>
+        <div class="share-buttons">
+          ${
+            navigator.share
+              ? `
+            <button class="share-button" data-share-type="native">Share</button>
+          `
+              : ""
+          }
+          <button class="share-button" data-share-type="copy">Copy Link</button>
+          <button
+            class="share-button"
+            data-share-type="external"
+            data-share-url="https://wa.me/?text=${encodedShareText}"
+          >
+            WhatsApp
+          </button>
+          <button
+            class="share-button"
+            data-share-type="external"
+            data-share-url="https://twitter.com/intent/tweet?text=${encodeURIComponent(
+              shareData.text
+            )}&url=${encodedShareUrl}"
+          >
+            X
+          </button>
+          <button
+            class="share-button"
+            data-share-type="external"
+            data-share-url="mailto:?subject=${encodedEmailSubject}&body=${encodedEmailBody}"
+          >
+            Email
+          </button>
+        </div>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -623,6 +745,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handlers for share buttons
+    const shareButtons = activityCard.querySelectorAll(".share-button");
+    shareButtons.forEach((button) => {
+      button.addEventListener("click", (event) => handleShare(event, shareData));
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -799,6 +927,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Handle sharing actions
+  async function handleShare(event, shareData) {
+    const shareType = event.currentTarget.dataset.shareType;
+
+    if (shareType === "native" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          showMessage("Unable to open native share dialog.", "error");
+        }
+      }
+      return;
+    }
+
+    if (shareType === "copy") {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        showMessage("Share link copied to clipboard.", "success");
+      } catch (error) {
+        showMessage("Unable to copy link. Please try again.", "error");
+      }
+      return;
+    }
+
+    const externalShareUrl = event.currentTarget.dataset.shareUrl;
+    if (externalShareUrl) {
+      window.open(externalShareUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
   // Handle unregistration with confirmation
   async function handleUnregister(event) {
     // Check if user is authenticated
@@ -909,7 +1068,9 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Initialize app
+  initializeTheme();
   checkAuthentication();
   initializeFilters();
+  initializeSharedActivitySearch();
   fetchActivities();
 });
