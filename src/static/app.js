@@ -24,6 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const closeLoginModal = document.querySelector(".close-login-modal");
   const loginMessage = document.getElementById("login-message");
+  const themeToggle = document.getElementById("theme-toggle");
+  const themeToggleIcon = document.getElementById("theme-toggle-icon");
+  const themeToggleLabel = document.getElementById("theme-toggle-label");
 
   // Activity categories with corresponding colors
   const activityTypes = {
@@ -33,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     community: { label: "Community", color: "#fff3e0", textColor: "#e65100" },
     technology: { label: "Technology", color: "#e8eaf6", textColor: "#3949ab" },
   };
+  const supportedThemes = ["light", "dark"];
+  const themeStorageKey = "preferredTheme";
 
   // State for activities and filters
   let allActivities = {};
@@ -43,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Authentication state
   let currentUser = null;
+  let currentTheme = "light";
 
   // Time range mappings for the dropdown
   const timeRanges = {
@@ -50,6 +56,48 @@ document.addEventListener("DOMContentLoaded", () => {
     afternoon: { start: "15:00", end: "18:00" }, // After school hours
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
+
+  function normalizeTheme(theme) {
+    return supportedThemes.includes(theme) ? theme : "light";
+  }
+
+  function applyTheme(theme) {
+    currentTheme = normalizeTheme(theme);
+    document.body.dataset.theme = currentTheme;
+    if (themeToggle) {
+      themeToggle.setAttribute(
+        "aria-pressed",
+        String(currentTheme === "dark")
+      );
+      themeToggle.setAttribute(
+        "aria-label",
+        currentTheme === "dark"
+          ? "Switch to light mode"
+          : "Switch to dark mode"
+      );
+    }
+    if (themeToggleIcon) {
+      themeToggleIcon.textContent = currentTheme === "dark" ? "☀️" : "🌙";
+    }
+    if (themeToggleLabel) {
+      themeToggleLabel.textContent =
+        currentTheme === "dark" ? "Light mode" : "Dark mode";
+    }
+  }
+
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem(themeStorageKey);
+    const systemPrefersDark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(savedTheme || (systemPrefersDark ? "dark" : "light"));
+  }
+
+  function toggleTheme() {
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme);
+    localStorage.setItem(themeStorageKey, nextTheme);
+  }
 
   // Initialize filters from active elements
   function initializeFilters() {
@@ -238,6 +286,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loginButton.addEventListener("click", openLoginModal);
   logoutButton.addEventListener("click", logout);
   closeLoginModal.addEventListener("click", closeLoginModalHandler);
+  if (themeToggle) {
+    themeToggle.addEventListener("click", toggleTheme);
+  }
 
   // Close login modal when clicking outside
   window.addEventListener("click", (event) => {
@@ -971,6 +1022,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Initialize app
+  initializeTheme();
   checkAuthentication();
   initializeFilters();
   initializeSharedActivitySearch();
