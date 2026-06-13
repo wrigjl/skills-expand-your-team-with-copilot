@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("activity-search");
   const searchButton = document.getElementById("search-button");
   const categoryFilters = document.querySelectorAll(".category-filter");
+  const difficultyFilters = document.querySelectorAll(".difficulty-filter");
   const dayFilters = document.querySelectorAll(".day-filter");
   const timeFilters = document.querySelectorAll(".time-filter");
 
@@ -42,12 +43,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // State for activities and filters
   let allActivities = {};
   let currentFilter = "all";
+  const UNSPECIFIED_DIFFICULTY = "";
+  let selectedDifficultyFilter = UNSPECIFIED_DIFFICULTY;
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
 
   // Authentication state
   let currentUser = null;
+  const difficultyLabels = {
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+  };
   let currentTheme = "light";
 
   // Time range mappings for the dropdown
@@ -355,6 +363,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return details.schedule;
   }
 
+  function getNormalizedDifficulty(difficulty) {
+    const normalizedDifficulty = (difficulty || "").trim().toLowerCase();
+    return difficultyLabels[normalizedDifficulty] ? normalizedDifficulty : "";
+  }
+
+  function getDifficultyLabel(difficulty) {
+    const normalizedDifficulty = getNormalizedDifficulty(difficulty);
+    return difficultyLabels[normalizedDifficulty] || "";
+  }
+
   // Build consistent share payload for an activity
   function getShareData(activityName, details) {
     const shareUrl = new URL(window.location.href);
@@ -377,7 +395,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!sharedActivity) {
       return;
     }
-
     searchQuery = sharedActivity;
     searchInput.value = sharedActivity;
   }
@@ -503,6 +520,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      const activityDifficulty = getNormalizedDifficulty(details.difficulty);
+      const showUnspecifiedOnly =
+        selectedDifficultyFilter === UNSPECIFIED_DIFFICULTY;
+      if (showUnspecifiedOnly && activityDifficulty) {
+        return;
+      }
+      if (
+        !showUnspecifiedOnly &&
+        activityDifficulty !== selectedDifficultyFilter
+      ) {
+        return;
+      }
+
       // Apply weekend filter if selected
       if (currentTimeRange === "weekend" && details.schedule_details) {
         const activityDays = details.schedule_details.days;
@@ -576,6 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
+    const difficultyLabel = getDifficultyLabel(details.difficulty);
     const shareData = getShareData(name, details);
     const encodedShareUrl = encodeURIComponent(shareData.url);
     const encodedShareText = encodeURIComponent(`${shareData.text} ${shareData.url}`);
@@ -614,6 +645,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <strong>Schedule:</strong> ${formattedSchedule}
         <span class="tooltip-text">Regular meetings at this time throughout the semester</span>
       </p>
+      ${
+        difficultyLabel
+          ? `<p><strong>Difficulty:</strong> ${difficultyLabel}</p>`
+          : ""
+      }
       ${capacityIndicator}
       <div class="participants-list">
         <h5>Current Participants:</h5>
@@ -740,6 +776,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Update current filter and display filtered activities
       currentFilter = button.dataset.category;
+      displayFilteredActivities();
+    });
+  });
+
+  difficultyFilters.forEach((button) => {
+    button.addEventListener("click", () => {
+      difficultyFilters.forEach((btn) => btn.classList.remove("active"));
+      button.classList.add("active");
+
+      selectedDifficultyFilter = button.dataset.difficulty;
       displayFilteredActivities();
     });
   });
