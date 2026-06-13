@@ -304,6 +304,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return details.schedule;
   }
 
+  // Build consistent share payload for an activity
+  function getShareData(activityName, details) {
+    const shareUrl = new URL(window.location.href);
+    shareUrl.searchParams.set("activity", activityName);
+
+    return {
+      title: `${activityName} at Mergington High School`,
+      text: `Check out ${activityName} at Mergington High School. Schedule: ${formatSchedule(
+        details
+      )}`,
+      url: shareUrl.toString(),
+    };
+  }
+
+  // Initialize search state from shared links
+  function initializeSharedActivitySearch() {
+    const sharedActivity = new URLSearchParams(window.location.search).get(
+      "activity"
+    );
+    if (!sharedActivity) {
+      return;
+    }
+
+    searchQuery = sharedActivity;
+    searchInput.value = sharedActivity;
+  }
+
   // Function to determine activity type (this would ideally come from backend)
   function getActivityType(activityName, description) {
     const name = activityName.toLowerCase();
@@ -498,6 +525,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
+    const shareData = getShareData(name, details);
+    const encodedShareUrl = encodeURIComponent(shareData.url);
+    const encodedShareText = encodeURIComponent(`${shareData.text} ${shareData.url}`);
+    const encodedEmailSubject = encodeURIComponent(
+      `Activity recommendation: ${name}`
+    );
+    const encodedEmailBody = encodeURIComponent(
+      `${shareData.text}\n\n${shareData.url}`
+    );
 
     // Create activity tag
     const tagHtml = `
@@ -569,6 +605,42 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-actions">
+        <span class="share-label">Share:</span>
+        <div class="share-buttons">
+          ${
+            navigator.share
+              ? `
+            <button class="share-button" data-share-type="native">Share</button>
+          `
+              : ""
+          }
+          <button class="share-button" data-share-type="copy">Copy Link</button>
+          <button
+            class="share-button"
+            data-share-type="external"
+            data-share-url="https://wa.me/?text=${encodedShareText}"
+          >
+            WhatsApp
+          </button>
+          <button
+            class="share-button"
+            data-share-type="external"
+            data-share-url="https://twitter.com/intent/tweet?text=${encodeURIComponent(
+              shareData.text
+            )}&url=${encodedShareUrl}"
+          >
+            X
+          </button>
+          <button
+            class="share-button"
+            data-share-type="external"
+            data-share-url="mailto:?subject=${encodedEmailSubject}&body=${encodedEmailBody}"
+          >
+            Email
+          </button>
+        </div>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -586,6 +658,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handlers for share buttons
+    const shareButtons = activityCard.querySelectorAll(".share-button");
+    shareButtons.forEach((button) => {
+      button.addEventListener("click", (event) => handleShare(event, shareData));
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -752,6 +830,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Handle sharing actions
+  async function handleShare(event, shareData) {
+    const shareType = event.currentTarget.dataset.shareType;
+
+    if (shareType === "native" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          showMessage("Unable to open native share dialog.", "error");
+        }
+      }
+      return;
+    }
+
+    if (shareType === "copy") {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        showMessage("Share link copied to clipboard.", "success");
+      } catch (error) {
+        showMessage("Unable to copy link. Please try again.", "error");
+      }
+      return;
+    }
+
+    const externalShareUrl = event.currentTarget.dataset.shareUrl;
+    if (externalShareUrl) {
+      window.open(externalShareUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
   // Handle unregistration with confirmation
   async function handleUnregister(event) {
     // Check if user is authenticated
@@ -864,5 +973,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize app
   checkAuthentication();
   initializeFilters();
+  initializeSharedActivitySearch();
   fetchActivities();
 });
