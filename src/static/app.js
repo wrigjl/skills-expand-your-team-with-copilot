@@ -83,7 +83,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initializeTheme() {
     const savedTheme = localStorage.getItem(themeStorageKey);
-    applyTheme(savedTheme || "light");
+    applyTheme(
+      savedTheme && supportedThemes.includes(savedTheme) ? savedTheme : "light"
+    );
   }
 
   function toggleTheme() {
