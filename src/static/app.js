@@ -57,8 +57,12 @@ document.addEventListener("DOMContentLoaded", () => {
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
 
+  function normalizeTheme(theme) {
+    return supportedThemes.includes(theme) ? theme : "light";
+  }
+
   function applyTheme(theme) {
-    currentTheme = supportedThemes.includes(theme) ? theme : "light";
+    currentTheme = normalizeTheme(theme);
     document.body.dataset.theme = currentTheme;
     if (themeToggle) {
       themeToggle.setAttribute(
@@ -83,9 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initializeTheme() {
     const savedTheme = localStorage.getItem(themeStorageKey);
-    applyTheme(
-      savedTheme && supportedThemes.includes(savedTheme) ? savedTheme : "light"
-    );
+    applyTheme(normalizeTheme(savedTheme));
   }
 
   function toggleTheme() {
